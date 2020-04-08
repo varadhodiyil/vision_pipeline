@@ -174,6 +174,7 @@ class YOLO(object):
         self.sess.close()
 
 predict_class = ['Sedan', 'Hatchback']
+color = ['black','silver','red','white','blue']
 def detect_video(yolo, video_path, output_path="", query="Q1"):
     import cv2
     print('query', query)
@@ -194,15 +195,19 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
     prev_time = timer()
     color_classifier = ColorClassifier()
     cartype_classifier = CarTypeClassifier()
-    while True:
+    out=[]
+    frame_number = 0
+    while True:         #frame_number < 10:
+        data = []
         return_value, frame = vid.read()
         if return_value:
+            frame_number += 1
             image = Image.fromarray(frame)
             image, detect_imagepoints = yolo.detect_image(image)
-            print(detect_imagepoints)
+            # print(detect_imagepoints)
             result = np.asarray(image)
+            data.append(str(frame_number))
             for detect_image in detect_imagepoints:
-                # print(detect_image['top'])
                 box_image = image.crop((detect_image['left'], detect_image['top'], detect_image['right'], detect_image['bottom']))
                 curr_time = timer()
                 cartype = predict_class[np.argmax(cartype_classifier.detect_cartype(np.array(box_image, dtype='float32')))]
@@ -210,9 +215,10 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
                 color = color_classifier.detect_color(np.array(box_image, dtype='float32'))
                 color_time =timer()
                 print(cartype_time - curr_time)
-                print(cartype)
                 print(color_time - cartype_time)
-                print(color)
+                data.append(cartype)
+                data.append(color)
+            data.append(str(len(detect_imagepoints)))
             # curr_time = timer()
             # exec_time = curr_time - prev_time
             # prev_time = curr_time
@@ -222,6 +228,8 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
             #     accum_time = accum_time - 1
             #     fps = "FPS: " + str(curr_fps)
             #     curr_fps = 0
+            print(','.join(data))
+            out.append(data)
             cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.50, color=(255, 0, 0), thickness=2)
             cv2.namedWindow("result", cv2.WINDOW_NORMAL)
@@ -230,5 +238,16 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
             #     out.write(result)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
+    
+   
     yolo.close_session()
+    f= open("out.csv","w+")
+    for data in out:
+        out_data = data[0] + ','
+        pattern = np.zeros(10, dtype=int)
+        index = predict_class.index(data[1])*5 + (color.index(data[2]) )
+        pattern[index] =1
+        out_data += ','.join([str(num) for num in pattern])
+        out_data += ',' + data[3]
+        f.write(out_data +'\n')
 
