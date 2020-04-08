@@ -18,6 +18,10 @@ from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 
+
+from color_classifier import ColorClassifier
+from cartype_classifier import CarTypeClassifier
+
 class YOLO(object):
     _defaults = {
         "model_path": 'model_data/yolo.h5',
@@ -52,14 +56,14 @@ class YOLO(object):
         return class_names
 
     def _get_anchors(self):
-        anchors_path = os.path.expanduser(self.anchors)
+        anchors_path = os.path.expanduser(self.anchors_path)
         with open(anchors_path) as f:
             anchors = f.readline()
         anchors = [float(x) for x in anchors.split(',')]
         return np.array(anchors).reshape(-1, 2)
 
     def generate(self):
-        model_path = os.path.expanduser(self.model)
+        model_path = os.path.expanduser(self.model_path)
         assert model_path.endswith('.h5'), 'Keras model or weights must be a .h5 file.'
 
         # Load model, or construct model and load weights.
@@ -112,7 +116,7 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        # print(image_data.shape)
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
@@ -129,7 +133,7 @@ class YOLO(object):
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
-
+        detect_imagepoints = []
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
             box = out_boxes[i]
@@ -144,8 +148,8 @@ class YOLO(object):
             left = max(0, np.floor(left + 0.5).astype('int32'))
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-            print(label, (left, top), (right, bottom))
-
+            # print(label, (left, top), (right, bottom))
+            detect_imagepoints.append({'left':left, 'top':top, 'right':right, 'bottom':bottom})
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
             else:
@@ -163,14 +167,16 @@ class YOLO(object):
             del draw
 
         end = timer()
-        print(end - start)
-        return image
+        # print(end - start)
+        return image, detect_imagepoints
 
     def close_session(self):
         self.sess.close()
 
-def detect_video(yolo, video_path, output_path=""):
+predict_class = ['Sedan', 'Hatchback']
+def detect_video(yolo, video_path, output_path="", query="Q1"):
     import cv2
+    print('query', query)
     vid = cv2.VideoCapture(video_path)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
@@ -186,27 +192,42 @@ def detect_video(yolo, video_path, output_path=""):
     curr_fps = 0
     fps = "FPS: ??"
     prev_time = timer()
+    color_classifier = ColorClassifier()
+    cartype_classifier = CarTypeClassifier()
     while True:
         return_value, frame = vid.read()
         if return_value:
             image = Image.fromarray(frame)
-            image = yolo.detect_image(image)
+            image, detect_imagepoints = yolo.detect_image(image)
+            print(detect_imagepoints)
             result = np.asarray(image)
-            curr_time = timer()
-            exec_time = curr_time - prev_time
-            prev_time = curr_time
-            accum_time = accum_time + exec_time
-            curr_fps = curr_fps + 1
-            if accum_time > 1:
-                accum_time = accum_time - 1
-                fps = "FPS: " + str(curr_fps)
-                curr_fps = 0
+            for detect_image in detect_imagepoints:
+                # print(detect_image['top'])
+                box_image = image.crop((detect_image['left'], detect_image['top'], detect_image['right'], detect_image['bottom']))
+                curr_time = timer()
+                cartype = predict_class[np.argmax(cartype_classifier.detect_cartype(np.array(box_image, dtype='float32')))]
+                cartype_time =timer()
+                color = color_classifier.detect_color(np.array(box_image, dtype='float32'))
+                color_time =timer()
+                print(cartype_time - curr_time)
+                print(cartype)
+                print(color_time - cartype_time)
+                print(color)
+            # curr_time = timer()
+            # exec_time = curr_time - prev_time
+            # prev_time = curr_time
+            # accum_time = accum_time + exec_time
+            # curr_fps = curr_fps + 1
+            # if accum_time > 1:
+            #     accum_time = accum_time - 1
+            #     fps = "FPS: " + str(curr_fps)
+            #     curr_fps = 0
             cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.50, color=(255, 0, 0), thickness=2)
             cv2.namedWindow("result", cv2.WINDOW_NORMAL)
             cv2.imshow("result", result)
-            if isOutput:
-                out.write(result)
+            # if isOutput:
+            #     out.write(result)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
     yolo.close_session()

@@ -61,6 +61,11 @@ if __name__ == '__main__':
         help = "[Optional] Video output path"
     )
 
+    parser.add_argument(
+        "--query", nargs='?', type=str, default="Q1",
+        help= "[Optional] Query to execute"
+    )
+
     FLAGS = parser.parse_args()
 
     if FLAGS.image:
@@ -72,6 +77,6 @@ if __name__ == '__main__':
             print(" Ignoring remaining command line arguments: " + FLAGS.input + "," + FLAGS.output)
         detect_img(YOLO(**vars(FLAGS)))
     elif "input" in FLAGS:
-        detect_video(YOLO(**vars(FLAGS)), FLAGS.input, FLAGS.output)
+        detect_video(YOLO(**vars(FLAGS)), FLAGS.input, FLAGS.output, FLAGS.query)
     else:
         print("Must specify at least video_input_path.  See usage with --help.")
