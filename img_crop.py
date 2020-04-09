@@ -24,6 +24,7 @@ if __name__ == "__main__":
                 op = op +"_{}".format(_i) + "." + ext 
                 print(op)
                 _img.save(op)
+            
             if i == 20:
                 break
             i = i + 1

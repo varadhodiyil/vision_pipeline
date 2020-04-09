@@ -147,7 +147,7 @@ class YOLO(object):
             print(label, (left, top), (right, bottom))
 
             if predicted_class == "car":
-                out_ret.append(((left, top), (right, bottom)))
+                out_ret.append((left + 200, top, right, bottom))
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
             else:

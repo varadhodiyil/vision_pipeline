@@ -6,6 +6,7 @@ import os
 from PIL import Image
 from datetime import datetime
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+import pickle
 
 IMG_SIZE = 224
 IMG_SHAPE = (IMG_SIZE , IMG_SIZE , 3)
@@ -69,6 +70,9 @@ test_data_gen = image_generator.flow_from_directory(directory=str(data_dir),
 
 label_map_t = (test_data_gen.class_indices)
 print(label_map_t)
+
+
+pickle.dump(label_map,open("mapping","wb"))
 # image_batch, label_batch = next(train_data_gen)
 # print(image_batch , label_batch)
 
@@ -124,7 +128,9 @@ validation_steps=20
 
 history = model.fit(train_data_gen,
                     epochs=initial_epochs,
-                    validation_data=test_data_gen,callbacks=[tensorboard_callback])
+                    validation_size=0.2,
+                    #validation_data=test_data_gen,
+                    callbacks=[tensorboard_callback])
 
 
 
