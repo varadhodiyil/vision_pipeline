@@ -174,7 +174,7 @@ class YOLO(object):
         self.sess.close()
 
 predict_class = ['Sedan', 'Hatchback']
-color = ['black','silver','red','white','blue']
+color = ['black', 'silver', 'red', 'white', 'blue']
 def detect_video(yolo, video_path, output_path="", query="Q1"):
     import cv2
     print('query', query)
@@ -196,28 +196,34 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
     color_classifier = ColorClassifier()
     cartype_classifier = CarTypeClassifier()
     out=[]
+    out_exetime = []
     frame_number = 0
-    while True:         #frame_number < 10:
+    while frame_number < 5:#True:         #frame_number < 10:
         data = []
+        time = []
+        exe_time = []
+        curr_time = timer()
         return_value, frame = vid.read()
         if return_value:
             frame_number += 1
             image = Image.fromarray(frame)
             image, detect_imagepoints = yolo.detect_image(image)
+            data.append(str(frame_number))
+            exe_time.append(str(frame_number))
+            detectimage_time = timer()
+            exe_time.append(str(detectimage_time - curr_time))
             # print(detect_imagepoints)
             result = np.asarray(image)
-            data.append(str(frame_number))
             for detect_image in detect_imagepoints:
                 box_image = image.crop((detect_image['left'], detect_image['top'], detect_image['right'], detect_image['bottom']))
-                curr_time = timer()
                 cartype = predict_class[np.argmax(cartype_classifier.detect_cartype(np.array(box_image, dtype='float32')))]
                 cartype_time =timer()
                 color = color_classifier.detect_color(np.array(box_image, dtype='float32'))
                 color_time =timer()
-                print(cartype_time - curr_time)
-                print(color_time - cartype_time)
                 data.append(cartype)
                 data.append(color)
+            exe_time.append(str(cartype_time - curr_time))
+            exe_time.append(str(color_time - curr_time))
             data.append(str(len(detect_imagepoints)))
             # curr_time = timer()
             # exec_time = curr_time - prev_time
@@ -230,6 +236,7 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
             #     curr_fps = 0
             print(','.join(data))
             out.append(data)
+            out_exetime.append(exe_time)
             cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                         fontScale=0.50, color=(255, 0, 0), thickness=2)
             cv2.namedWindow("result", cv2.WINDOW_NORMAL)
@@ -243,11 +250,23 @@ def detect_video(yolo, video_path, output_path="", query="Q1"):
     yolo.close_session()
     f= open("out.csv","w+")
     for data in out:
+        print(data)
         out_data = data[0] + ','
         pattern = np.zeros(10, dtype=int)
-        index = predict_class.index(data[1])*5 + (color.index(data[2]) )
-        pattern[index] =1
+        print(data[1], data[2])
+        #received substring not found error randomly
+        index = predict_class.index(data[1])*5 + (color.index(data[2]))
+        pattern[index] +=1
+        if len(data) > 4:
+            index = predict_class.index(data[3])*5 + (color.index(data[4]))
+            pattern[index] +=1
         out_data += ','.join([str(num) for num in pattern])
-        out_data += ',' + data[3]
+        if len(data) > 4:
+            out_data += ',' + data[5]
+        else:
+            out_data += ',' + data[3]
         f.write(out_data +'\n')
+    f = open('out_time.csv','w+')
+    for exe_time in out_exetime:
+        f.write(','.join(exe_time)+'\n')
 
