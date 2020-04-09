@@ -18,6 +18,10 @@ from yolo3.utils import letterbox_image
 import os
 from keras.utils import multi_gpu_model
 
+
+from color_classifier import ColorClassifier
+from cartype_classifier import CarTypeClassifier
+
 class YOLO(object):
     _defaults = {
         "model": 'model_data/tiny.h5',
@@ -112,7 +116,7 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        # print(image_data.shape)
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
@@ -129,12 +133,12 @@ class YOLO(object):
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
-        out_ret = list()
+        detect_imagepoints = []
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
             box = out_boxes[i]
             score = out_scores[i]
-            
+
             label = '{} {:.2f}'.format(predicted_class, score)
             draw = ImageDraw.Draw(image)
             label_size = draw.textsize(label, font)
@@ -144,10 +148,8 @@ class YOLO(object):
             left = max(0, np.floor(left + 0.5).astype('int32'))
             bottom = min(image.size[1], np.floor(bottom + 0.5).astype('int32'))
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
-            print(label, (left, top), (right, bottom))
-
-            if predicted_class == "car":
-                out_ret.append(((left, top), (right, bottom)))
+            # print(label, (left, top), (right, bottom))
+            detect_imagepoints.append({'left':left, 'top':top, 'right':right, 'bottom':bottom})
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
             else:
@@ -165,14 +167,17 @@ class YOLO(object):
             del draw
 
         end = timer()
-        print(end - start)
-        return out_ret
+        # print(end - start)
+        return image, detect_imagepoints
 
     def close_session(self):
         self.sess.close()
 
-def detect_video(yolo, video_path, output_path=""):
+predict_class = ['Sedan', 'Hatchback']
+color = ['black', 'silver', 'red', 'white', 'blue']
+def detect_video(yolo, video_path, output_path="", query="Q1"):
     import cv2
+    print('query', query)
     vid = cv2.VideoCapture(video_path)
     if not vid.isOpened():
         raise IOError("Couldn't open webcam or video")
@@ -188,27 +193,80 @@ def detect_video(yolo, video_path, output_path=""):
     curr_fps = 0
     fps = "FPS: ??"
     prev_time = timer()
-    while True:
-        return_value, frame = vid.read()
-        image = Image.fromarray(frame)
-        image = yolo.detect_image(image)
-        result = np.asarray(image)
+    color_classifier = ColorClassifier()
+    cartype_classifier = CarTypeClassifier()
+    out=[]
+    out_exetime = []
+    frame_number = 0
+    while frame_number < 5:#True:         #frame_number < 10:
+        data = []
+        time = []
+        exe_time = []
         curr_time = timer()
-        exec_time = curr_time - prev_time
-        prev_time = curr_time
-        accum_time = accum_time + exec_time
-        curr_fps = curr_fps + 1
-        if accum_time > 1:
-            accum_time = accum_time - 1
-            fps = "FPS: " + str(curr_fps)
-            curr_fps = 0
-        cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                    fontScale=0.50, color=(255, 0, 0), thickness=2)
-        cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-        cv2.imshow("result", result)
-        if isOutput:
-            out.write(result)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        return_value, frame = vid.read()
+        if return_value:
+            frame_number += 1
+            image = Image.fromarray(frame)
+            image, detect_imagepoints = yolo.detect_image(image)
+            data.append(str(frame_number))
+            exe_time.append(str(frame_number))
+            detectimage_time = timer()
+            exe_time.append(str(detectimage_time - curr_time))
+            # print(detect_imagepoints)
+            result = np.asarray(image)
+            for detect_image in detect_imagepoints:
+                box_image = image.crop((detect_image['left'], detect_image['top'], detect_image['right'], detect_image['bottom']))
+                cartype = predict_class[np.argmax(cartype_classifier.detect_cartype(np.array(box_image, dtype='float32')))]
+                cartype_time =timer()
+                color = color_classifier.detect_color(np.array(box_image, dtype='float32'))
+                color_time =timer()
+                data.append(cartype)
+                data.append(color)
+            exe_time.append(str(cartype_time - curr_time))
+            exe_time.append(str(color_time - curr_time))
+            data.append(str(len(detect_imagepoints)))
+            # curr_time = timer()
+            # exec_time = curr_time - prev_time
+            # prev_time = curr_time
+            # accum_time = accum_time + exec_time
+            # curr_fps = curr_fps + 1
+            # if accum_time > 1:
+            #     accum_time = accum_time - 1
+            #     fps = "FPS: " + str(curr_fps)
+            #     curr_fps = 0
+            print(','.join(data))
+            out.append(data)
+            out_exetime.append(exe_time)
+            cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                        fontScale=0.50, color=(255, 0, 0), thickness=2)
+            cv2.namedWindow("result", cv2.WINDOW_NORMAL)
+            cv2.imshow("result", result)
+            # if isOutput:
+            #     out.write(result)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    
+   
     yolo.close_session()
+    f= open("out.csv","w+")
+    for data in out:
+        print(data)
+        out_data = data[0] + ','
+        pattern = np.zeros(10, dtype=int)
+        print(data[1], data[2])
+        #received substring not found error randomly
+        index = predict_class.index(data[1])*5 + (color.index(data[2]))
+        pattern[index] +=1
+        if len(data) > 4:
+            index = predict_class.index(data[3])*5 + (color.index(data[4]))
+            pattern[index] +=1
+        out_data += ','.join([str(num) for num in pattern])
+        if len(data) > 4:
+            out_data += ',' + data[5]
+        else:
+            out_data += ',' + data[3]
+        f.write(out_data +'\n')
+    f = open('out_time.csv','w+')
+    for exe_time in out_exetime:
+        f.write(','.join(exe_time)+'\n')
 
