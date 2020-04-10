@@ -13,6 +13,8 @@ from datetime import datetime
 import os
 
 from client_send_message import MessageSender
+# from scipy.misc import toimage
+from PIL import Image
 
 start = datetime.now()
 HOST = "localhost"
@@ -40,11 +42,12 @@ def read_video(video_path):
     file_name , ext = os.path.splitext(video_path)
     out_path = "{0}_out{1}".format(file_name,ext)     
     print(out_path)
-    out_video_obj = cv2.VideoWriter(out_path, video_FourCC, fps, video_size)
+    out_video_obj = cv2.VideoWriter(out_path, video_FourCC, 25, video_size)
     while True:
         ret, frame = video.read()
         final_message = ""
         if ret:
+            _frame = np.array(frame)
             img = cv2.resize(frame , (224,224))
             # print(type(img))
             # f = BytesIO()
@@ -117,12 +120,19 @@ def read_video(video_path):
             final.pop('has_car')
             sender.send_message(pickle.dumps(final,protocol=2))
             idx = idx + 1
-            cv2.putText(frame, text=final_message, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+            # img = np.array(img)
+            cv2.putText(_frame, text=final_message, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                     fontScale=0.50, color=(255, 0, 0), thickness=2)
             # cv2.imshow("Result",img)
             print("Writing")
-            out_video_obj.write(frame)
-    
+            # print(type(img))
+            # _img = scipy.misc.toimage(img)
+            # _img = Image.fromarray(img)
+
+            out_video_obj.write(_frame)
+            # _img.show()
+            if idx == 100:
+                break
             
 
         else:
