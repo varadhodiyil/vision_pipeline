@@ -15,4 +15,4 @@ class MessageSender():
 
 if __name__ == "__main__":
     m = MessageSender()
-    m.send_message("1,obj,Hello")
+    m.send_message("1,obj1,Hello")
