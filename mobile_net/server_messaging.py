@@ -20,6 +20,9 @@ resp = list()
 # resp = np.zeros((1495)).tolist()
 # for i in range(1495):
 #     resp.append({})
+'''
+Socket server to recieve response data and writes it into csv
+'''
 try :
     while True:
         c,a = s.accept()

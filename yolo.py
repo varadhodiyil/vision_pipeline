@@ -100,6 +100,10 @@ class YOLO(object):
         return boxes, scores, classes
 
     def detect_image(self, image):
+        '''
+        MEthod to detect image from frame 
+        returns bounding boxes points as list
+        '''
         start = timer()
 
         if self.model_image_size != (None, None):

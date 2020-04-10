@@ -11,11 +11,15 @@ print(CLASSES)
 class PredictCars():
     def __init__(self):
         self.model = tf.keras.models.load_model("car")
-        self.model.build((None,224,224,3))
-        print(self.model.summary())
-
+        # self.model.build((None,224,224,3))
+        # print(self.model.summary())
 
     def predict(self , images):
+        '''
+        Method to predict car type
+        images  : images array to be predicted
+        returns list contains predicted car type
+        '''
         # images = tf.keras.preprocessing.image.img_to_array(images)
         ret = np.argmax(self.model.predict(images), axis=1)
 

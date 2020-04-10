@@ -27,6 +27,11 @@ print("[+] Connected with Server")
 q = "q3"
 
 def read_video(video_path):
+    '''
+    Method to read video
+    video_path  : path of the video to be read
+
+    '''
     video = cv2.VideoCapture(video_path)
     if not video.isOpened():
         raise IOError("Couldn't open webcam or video")
@@ -36,7 +41,7 @@ def read_video(video_path):
     idx = 0
     # video_FourCC    = int(video.get(cv2.CAP_PROP_FOURCC))
     video_FourCC = cv2.VideoWriter_fourcc(*"mp4v")
-    video_fps       = video.get(cv2.CAP_PROP_FPS)
+    video_fps       = video.get(cv2.CAP_PROP_FPS)   
     video_size      = (int(video.get(cv2.CAP_PROP_FRAME_WIDTH)),
                         int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     file_name , ext = os.path.splitext(video_path)
@@ -56,6 +61,8 @@ def read_video(video_path):
             # out = f.read()
             # val = "{0}".format(len(f.getvalue()))  # prepend length of array
             # out = "{0}:{1}".format(val, out)
+
+            #block to put frames into queue and read result from object detection
             if q in ["q1","q2","q3"]:
                 s = socket.socket(socket.AF_INET,   socket.SOCK_STREAM)
                 s.connect((HOST, 6666))
@@ -90,6 +97,7 @@ def read_video(video_path):
                 final_message += " Num Cars {0} \n".format(final['num_cars'])
                 if q == "q3":
                     final_message += " Colours {0} \n".format(final['colours'])
+            #After object detection, If query is Q2/Q3, detected car will send to Classifiers
             if q in ["q2","q3"]:
                 if 'has_car' in hasCar and hasCar['has_car']:
                     print("car Found... Sending to Clf")

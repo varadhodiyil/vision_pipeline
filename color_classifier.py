@@ -2,6 +2,7 @@
 import numpy as np
 import argparse
 import cv2
+
 # define the list of boundaries
 boundaries = {
 				# 'red': ([160, 100, 75], [180, 190, 205]),
@@ -21,7 +22,12 @@ boundaries = {
 				# 'blue':([80,40,125], [120,90,255]),
 				# 'silver':([117,0,112], [255,19,255])}
 
-def detect_color(image):			
+def detect_color(image):
+	'''
+	Method to detect color fom an image
+	image	:	input image to detect color
+	returns color of an object
+	'''
 	hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 	max= 0
 	#color = 'red'

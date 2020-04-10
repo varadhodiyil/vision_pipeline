@@ -23,7 +23,9 @@ s = socket.socket()
 print("Socket Conn Started")
 s.bind((b'', 5555))
 s.listen(1)
-
+'''
+Socket server to receive the cropped car image and send it to type classifier
+'''
 sender = MessageSender()
 idx = 0 
 while True:

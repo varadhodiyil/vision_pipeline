@@ -28,7 +28,7 @@ s.bind((b'',6666))
 s.listen(1)
 
 
-
+#Socker server to receive image and send for object detection and color detection
 idx = 0
 while True:
     c,a = s.accept()
