@@ -4,6 +4,7 @@
 *.h5
 logs/
 *_test.py
+*.jpeg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -106,3 +107,10 @@ ENV/
 
 # mypy
 .mypy_cache/
+mobile_net/car*
+# mobile_net/car/saved_model.pb
+mobile_net/car/variables/variables.index
+mobile_net/car/variables/variables.data-00001-of-00002
+mobile_net/car/saved_model.pb
+*.mp4
+mobile_net/car/variables/*

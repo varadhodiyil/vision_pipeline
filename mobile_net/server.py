@@ -1,34 +1,52 @@
+from __future__ import print_function
+
 import socket
 import sys
+import threading
+
+import numpy as np
+from PIL import Image
+
+from client_send_message import MessageSender
+from predict import PredictCars
+
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 
-HOST = "localhost"
-PORT = 5555
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((HOST, PORT))
-s.listen(5)
+pred = PredictCars()
+s = socket.socket()
+print("Socket Conn Started")
+s.bind((b'', 5555))
+s.listen(1)
 
-print("Listening ...")
-
-curr = 0
+sender = MessageSender()
+idx = 0 
 while True:
-    conn, addr = s.accept()
-    print("[+] Client connected: ", addr)
-
-    # get file name to download
-    f = open("{0}.jpg".format(curr), "wb")
+    c, a = s.accept()
+    data = b''
     while True:
-        # get file bytes
-        data = conn.recv(4096)
-        if not data:
+        block = c.recv(4096)
+        if not block:
             break
-        # write bytes on file
-        f.write(data)
-    f.close()
-    print("[+] Download complete!")
-    curr = curr +1
-    # close connection
-conn.close()
-print("[-] Client disconnected")
-sys.exit(0)
+        data += block
+    c.close()
+    if sys.version_info.major < 3:
+        unserialized_input = pickle.loads(data)
+    else:
+        unserialized_input = pickle.loads(data, encoding='bytes')
+    if unserialized_input is not None:
+        # img = Image.fromarray(unserialized_input)
+        img = unserialized_input.tolist()
+        images = list()
+        images.append(img)
+        images = np.array(images, dtype=float)
+        class_ =pred.predict(images)
+        print(class_)
+        sender.send_message("{0},car_type,{1}".format(idx,class_))
+        idx = idx + 1
+    # print(img.size)
+    # img.show()

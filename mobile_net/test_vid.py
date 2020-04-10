@@ -72,4 +72,4 @@ def read_video(video_path):
 
 
 
-read_video("video.mp4")
+read_video("vid.mp4")

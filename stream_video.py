@@ -2,6 +2,7 @@ import cv2
 import sys
 from time import time as timer
 
+
 def read_video(video_path):
     video = cv2.VideoCapture(video_path)
     fps = video.get(cv2.CAP_PROP_FPS)
