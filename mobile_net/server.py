@@ -34,7 +34,7 @@ while True:
         if not block:
             break
         data += block
-    c.close()
+    # c.close()
     if sys.version_info.major < 3:
         unserialized_input = pickle.loads(data)
     else:
@@ -47,9 +47,15 @@ while True:
         images.append(img)
         images = np.array(images, dtype=float)
         class_ =pred.predict(images)
-        print(class_)
+        # print(class_)
         _proc = "{:f}".format(float((datetime.now() - rec).total_seconds()))
-        sender.send_message("{0},car_type,{1},car_type_time,{2}".format(idx,class_,_proc))
+        resp_json = dict()
+        resp_json['car_type'] = class_
+        resp_json['car_type_time'] = _proc
+        print("car_type",resp_json)
+        # c.send_message("{0},car_type,{1},car_type_time,{2}".format(idx,class_,_proc))
+        c.sendall(pickle.dumps(resp_json,protocol=2))
+        c.close()
         idx = idx + 1
     # print(img.size)
     # img.show()
