@@ -24,7 +24,7 @@ sender = MessageSender()
 
 
 print("[+] Connected with Server")
-q = "q2"
+q = "q3"
 
 def read_video(video_path):
     video = cv2.VideoCapture(video_path)
@@ -56,7 +56,7 @@ def read_video(video_path):
             # out = f.read()
             # val = "{0}".format(len(f.getvalue()))  # prepend length of array
             # out = "{0}:{1}".format(val, out)
-            if q == "q1" or q == "q3" or q == "q2":
+            if q in ["q1","q2","q3"]:
                 s = socket.socket(socket.AF_INET,   socket.SOCK_STREAM)
                 s.connect((HOST, 6666))
                 serialized_data = pickle.dumps(img, protocol=2)
@@ -90,7 +90,7 @@ def read_video(video_path):
                 final_message += " Num Cars {0} \n".format(final['num_cars'])
                 if q == "q3":
                     final_message += " Colours {0} \n".format(final['colours'])
-            if q == "q2":
+            if q in ["q2","q3"]:
                 if 'has_car' in hasCar and hasCar['has_car']:
                     print("car Found... Sending to Clf")
                     
@@ -126,7 +126,7 @@ def read_video(video_path):
             sender.send_message(pickle.dumps(final,protocol=2))
             idx = idx + 1
             # img = np.array(img)
-            y0, dy = 3, 15
+            y0, dy = 20, 15
             for i, line in enumerate(final_message.split('\n')):
                 y = y0 + i * dy
                 cv2.putText(_frame, text=line, org=(10, y), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
@@ -139,8 +139,8 @@ def read_video(video_path):
 
             out_video_obj.write(_frame)
             # _img.show()
-            if idx == 100:
-                break
+            # if idx == 100:
+            #     break
             
 
         else:
