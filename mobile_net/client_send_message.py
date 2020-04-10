@@ -8,7 +8,7 @@ class MessageSender():
     def send_message(self , message):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((self.host, self.port))
-        sock.send(message.encode())
+        sock.sendall(message)
         sock.close()
 
 
