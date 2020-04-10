@@ -6,6 +6,7 @@ import threading
 
 import numpy as np
 from PIL import Image
+from datetime import datetime
 
 from client_send_message import MessageSender
 from predict import PredictCars
@@ -40,13 +41,15 @@ while True:
         unserialized_input = pickle.loads(data, encoding='bytes')
     if unserialized_input is not None:
         # img = Image.fromarray(unserialized_input)
+        rec = datetime.now()
         img = unserialized_input.tolist()
         images = list()
         images.append(img)
         images = np.array(images, dtype=float)
         class_ =pred.predict(images)
         print(class_)
-        sender.send_message("{0},car_type,{1}".format(idx,class_))
+        _proc = "{:f}".format(float((datetime.now() - rec).total_seconds()))
+        sender.send_message("{0},car_type,{1},car_type_time,{2}".format(idx,class_,_proc))
         idx = idx + 1
     # print(img.size)
     # img.show()

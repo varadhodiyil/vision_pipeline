@@ -38,8 +38,8 @@ def format_example(image, label):
 
 
 BATCH_SIZE = 10
-IMG_HEIGHT = 256
-IMG_WIDTH = 256
+IMG_HEIGHT = 224
+IMG_WIDTH = 224
 image_count = 1110
 STEPS_PER_EPOCH = np.ceil(image_count/BATCH_SIZE)
 
@@ -128,8 +128,8 @@ validation_steps=20
 
 history = model.fit(train_data_gen,
                     epochs=initial_epochs,
-                    validation_size=0.2,
-                    #validation_data=test_data_gen,
+                    # validation_split=0.2,
+                    validation_data=test_data_gen,
                     callbacks=[tensorboard_callback])
 
 
