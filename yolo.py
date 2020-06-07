@@ -20,8 +20,8 @@ from keras.utils import multi_gpu_model
 
 class YOLO(object):
     _defaults = {
-        "model_path": 'model_data/yolo.h5',
-        "anchors_path": 'model_data/yolo_anchors.txt',
+        "model": 'model_data/tiny.h5',
+        "anchors_path": 'model_data/tiny_yolo_anchors.txt',
         "classes_path": 'model_data/coco_classes.txt',
         "score" : 0.3,
         "iou" : 0.45,
@@ -52,7 +52,7 @@ class YOLO(object):
         return class_names
 
     def _get_anchors(self):
-        anchors_path = os.path.expanduser(self.anchors)
+        anchors_path = os.path.expanduser(self.anchors_path)
         with open(anchors_path) as f:
             anchors = f.readline()
         anchors = [float(x) for x in anchors.split(',')]
@@ -100,6 +100,10 @@ class YOLO(object):
         return boxes, scores, classes
 
     def detect_image(self, image):
+        '''
+        MEthod to detect image from frame 
+        returns bounding boxes points as list
+        '''
         start = timer()
 
         if self.model_image_size != (None, None):
@@ -112,7 +116,7 @@ class YOLO(object):
             boxed_image = letterbox_image(image, new_image_size)
         image_data = np.array(boxed_image, dtype='float32')
 
-        print(image_data.shape)
+        
         image_data /= 255.
         image_data = np.expand_dims(image_data, 0)  # Add batch dimension.
 
@@ -129,12 +133,12 @@ class YOLO(object):
         font = ImageFont.truetype(font='font/FiraMono-Medium.otf',
                     size=np.floor(3e-2 * image.size[1] + 0.5).astype('int32'))
         thickness = (image.size[0] + image.size[1]) // 300
-
+        out_ret = list()
         for i, c in reversed(list(enumerate(out_classes))):
             predicted_class = self.class_names[c]
             box = out_boxes[i]
             score = out_scores[i]
-
+            
             label = '{} {:.2f}'.format(predicted_class, score)
             draw = ImageDraw.Draw(image)
             label_size = draw.textsize(label, font)
@@ -146,6 +150,8 @@ class YOLO(object):
             right = min(image.size[0], np.floor(right + 0.5).astype('int32'))
             print(label, (left, top), (right, bottom))
 
+            if predicted_class == "car":
+                out_ret.append((left, top, right, bottom))
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
             else:
@@ -164,7 +170,7 @@ class YOLO(object):
 
         end = timer()
         print(end - start)
-        return image
+        return out_ret
 
     def close_session(self):
         self.sess.close()
@@ -188,26 +194,25 @@ def detect_video(yolo, video_path, output_path=""):
     prev_time = timer()
     while True:
         return_value, frame = vid.read()
-        if return_value:
-            image = Image.fromarray(frame)
-            image = yolo.detect_image(image)
-            result = np.asarray(image)
-            curr_time = timer()
-            exec_time = curr_time - prev_time
-            prev_time = curr_time
-            accum_time = accum_time + exec_time
-            curr_fps = curr_fps + 1
-            if accum_time > 1:
-                accum_time = accum_time - 1
-                fps = "FPS: " + str(curr_fps)
-                curr_fps = 0
-            cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                        fontScale=0.50, color=(255, 0, 0), thickness=2)
-            cv2.namedWindow("result", cv2.WINDOW_NORMAL)
-            cv2.imshow("result", result)
-            if isOutput:
-                out.write(result)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+        image = Image.fromarray(frame)
+        image = yolo.detect_image(image)
+        result = np.asarray(image)
+        curr_time = timer()
+        exec_time = curr_time - prev_time
+        prev_time = curr_time
+        accum_time = accum_time + exec_time
+        curr_fps = curr_fps + 1
+        if accum_time > 1:
+            accum_time = accum_time - 1
+            fps = "FPS: " + str(curr_fps)
+            curr_fps = 0
+        cv2.putText(result, text=fps, org=(3, 15), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                    fontScale=0.50, color=(255, 0, 0), thickness=2)
+        cv2.namedWindow("result", cv2.WINDOW_NORMAL)
+        cv2.imshow("result", result)
+        if isOutput:
+            out.write(result)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
     yolo.close_session()
 
